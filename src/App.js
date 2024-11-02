@@ -21,7 +21,7 @@ function App() {
   return (
     <div className="App">
       <div className="container">
-        <h1>Bug Blaster</h1>
+        <h1>Taskuere</h1>
         <TicketForm
           dispatch={dispatch}
           editingTicket={state.editingTicket}
