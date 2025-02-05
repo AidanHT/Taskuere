@@ -1,5 +1,3 @@
-![image](https://github.com/user-attachments/assets/4f97565b-4781-44ea-b386-4def4ef05774)# Taskuere
-
 ![Taskuere](https://img.shields.io/badge/Taskuere-1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.x-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-16.x-green)
