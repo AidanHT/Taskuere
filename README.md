@@ -1,4 +1,4 @@
-# Taskuere
+![image](https://github.com/user-attachments/assets/4f97565b-4781-44ea-b386-4def4ef05774)# Taskuere
 
 ![Taskuere](https://img.shields.io/badge/Taskuere-1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.x-blue)
@@ -89,10 +89,6 @@ SMTP_PASS=your_app_specific_password
 ```
 REACT_APP_API_URL=http://localhost:5000
 ```
-
-## 📱 Screenshots
-
-[Add screenshots of your application here]
 
 ## 🌐 API Documentation
 
