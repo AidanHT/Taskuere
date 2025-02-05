@@ -122,3 +122,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Material-UI for the amazing component library
 - The React team for the excellent framework
 - MongoDB for the robust database solution 
+- ChatGPT for making this beautiful README.md file 🙏🙏
