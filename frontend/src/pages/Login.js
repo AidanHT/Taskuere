@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -103,6 +103,10 @@ const Login = () => {
     const location = useLocation();
     const { login } = useAuth();
     const theme = useTheme();
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     const formik = useFormik({
         initialValues: {

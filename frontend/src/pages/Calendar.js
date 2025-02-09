@@ -17,7 +17,6 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Typography,
     Paper,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -44,7 +43,7 @@ const Calendar = () => {
     const queryClient = useQueryClient();
 
     // Fetch appointments
-    const { data: appointments, isLoading } = useQuery('appointments', async () => {
+    const { data: appointments } = useQuery('appointments', async () => {
         const response = await axios.get(
             `${process.env.REACT_APP_API_URL}/api/appointments`
         );

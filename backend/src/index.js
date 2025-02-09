@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // Load environment variables
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -11,25 +11,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = 'localhost';
 
-// CORS configuration
+// Enable CORS for cross-origin requests
 app.use(cors());
 
-// Security middleware
+// Security middleware to protect against vulnerabilities
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// Rate limiting to prevent abuse (100 requests per 15 minutes per IP)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100
 });
 app.use(limiter);
 
-// Create transporter for a specific user
+// Function to create email transporter dynamically based on user settings
 const createTransporter = async (userId) => {
     try {
-        // Get user with email settings
+        // Retrieve user email settings from the database
         const user = await User.findById(userId).select('+emailSettings.smtpPassword');
         if (!user || !user.emailSettings.isConfigured) {
             throw new Error('Email settings not configured');
@@ -38,7 +38,7 @@ const createTransporter = async (userId) => {
         return nodemailer.createTransport({
             host: user.emailSettings.smtpHost,
             port: user.emailSettings.smtpPort,
-            secure: false,
+            secure: false, // Not using SSL
             auth: {
                 user: user.email,
                 pass: user.emailSettings.smtpPassword
@@ -52,7 +52,7 @@ const createTransporter = async (userId) => {
     }
 };
 
-// Test email endpoint
+// Endpoint to send a test email
 app.post('/api/test-email', async (req, res) => {
     console.log('Received email test request:', req.body);
     try {
@@ -64,11 +64,12 @@ app.post('/api/test-email', async (req, res) => {
         const transporter = await createTransporter(userId);
         console.log('Email transporter created successfully');
 
-        // Verify SMTP connection
+        // Verify SMTP connection before sending
         console.log('Verifying SMTP connection...');
         await transporter.verify();
         console.log('SMTP connection verified successfully');
 
+        // Email options
         const testMailOptions = {
             from: email,
             to: email,
@@ -101,7 +102,7 @@ app.post('/api/test-email', async (req, res) => {
     }
 });
 
-// Basic route for testing
+// Simple test endpoint to check if the backend is running
 app.get('/api/test', (req, res) => {
     console.log('Test endpoint hit at:', new Date().toISOString());
     res.json({
@@ -110,18 +111,17 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-// MongoDB connection with more detailed error handling
 console.log('Starting server initialization...');
 console.log('MongoDB URI:', process.env.MONGODB_URI);
 
-// Wrap server startup in async function for better error handling
+// Function to start the server with database connection handling
 const startServer = async () => {
     try {
-        // Connect to MongoDB
+        // Connect to MongoDB using Mongoose
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('Successfully connected to MongoDB');
 
-        // Set up routes
+        // Load API routes
         app.use('/api/auth', require('./routes/auth'));
         app.use('/api/appointments', require('./routes/appointments'));
         app.use('/api/users', require('./routes/users'));
@@ -133,19 +133,18 @@ const startServer = async () => {
             console.log(`Email test endpoint available at http://${HOST}:${PORT}/api/test-email`);
         });
 
-        // Handle server errors
+        // Handle unexpected server errors
         server.on('error', (error) => {
             console.error('Server error:', error);
             process.exit(1);
         });
-
     } catch (error) {
         console.error('Startup error:', error);
         process.exit(1);
     }
 };
 
-// Error handling middleware
+// Global error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error occurred:', err);
     res.status(500).json({
@@ -159,4 +158,4 @@ app.use((err, req, res, next) => {
 startServer().catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
-}); 
+});

@@ -160,4 +160,36 @@ router.patch('/:id/role', auth, isAdmin, [
     }
 });
 
+// Delete user (admin only)
+router.delete('/:id', auth, isAdmin, async (req, res) => {
+    try {
+        const userToDelete = await User.findById(req.params.id);
+
+        if (!userToDelete) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Prevent admin from deleting themselves
+        if (userToDelete._id.equals(req.user._id)) {
+            return res.status(400).json({ message: 'Cannot delete your own admin account' });
+        }
+
+        // Delete all appointments associated with the user
+        await Appointment.deleteMany({
+            $or: [
+                { creator: userToDelete._id },
+                { 'attendees.user': userToDelete._id }
+            ]
+        });
+
+        // Delete the user
+        await User.findByIdAndDelete(userToDelete._id);
+
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router; 

@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
 
 const PrivateRoute = ({ children }) => {
-    const { user, loading } = useAuth();
-    const location = useLocation();
+    const { user, loading } = useAuth(); // Get authentication state
+    const location = useLocation(); // Get current route location
 
+    // Display a loading spinner if authentication state is being fetched
     if (loading) {
         return (
             <Box
@@ -20,11 +21,12 @@ const PrivateRoute = ({ children }) => {
         );
     }
 
+    // Redirect unauthenticated users to login page, preserving their intended destination
     if (!user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    return children;
+    return children; // Render protected content if the user is authenticated
 };
 
-export default PrivateRoute; 
+export default PrivateRoute;
