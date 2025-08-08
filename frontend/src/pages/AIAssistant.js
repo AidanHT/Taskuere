@@ -105,9 +105,9 @@ const AIAssistant = () => {
             if (result.stage === 'ready') {
                 toast.success('Appointment suggestion ready!');
             } else if (result.stage === 'conflicts') {
-                toast.warning('Conflicts detected - please review options');
+                toast('Conflicts detected - please review options', { icon: '⚠️' });
             } else if (result.stage === 'suggestions') {
-                toast.info('Time slot suggestions generated');
+                toast('Time slot suggestions generated', { icon: 'ℹ️' });
             }
         }
     };

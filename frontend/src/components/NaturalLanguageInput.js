@@ -179,40 +179,46 @@ const NaturalLanguageInput = ({
                                     {/* Voice input button */}
                                     {speechSupported && (
                                         <Tooltip title={listening ? 'Stop listening' : 'Start voice input'}>
-                                            <IconButton
-                                                onClick={toggleListening}
-                                                disabled={disabled || isProcessing}
-                                                color={listening ? 'error' : 'default'}
-                                                size="small"
-                                            >
-                                                {listening ? <MicOff /> : <Mic />}
-                                            </IconButton>
+                                            <span>
+                                                <IconButton
+                                                    onClick={toggleListening}
+                                                    disabled={disabled || isProcessing}
+                                                    color={listening ? 'error' : 'default'}
+                                                    size="small"
+                                                >
+                                                    {listening ? <MicOff /> : <Mic />}
+                                                </IconButton>
+                                            </span>
                                         </Tooltip>
                                     )}
                                     
                                     {/* Clear button */}
                                     {input && (
                                         <Tooltip title="Clear input">
-                                            <IconButton
-                                                onClick={handleClear}
-                                                disabled={disabled || isProcessing}
-                                                size="small"
-                                            >
-                                                <Clear />
-                                            </IconButton>
+                                            <span>
+                                                <IconButton
+                                                    onClick={handleClear}
+                                                    disabled={disabled || isProcessing}
+                                                    size="small"
+                                                >
+                                                    <Clear />
+                                                </IconButton>
+                                            </span>
                                         </Tooltip>
                                     )}
                                     
                                     {/* Submit button */}
                                     <Tooltip title="Process request">
-                                        <IconButton
-                                            onClick={handleSubmit}
-                                            disabled={disabled || !input.trim() || isProcessing}
-                                            color="primary"
-                                            size="small"
-                                        >
-                                            {isProcessing ? <CircularProgress size={20} /> : <Send />}
-                                        </IconButton>
+                                        <span>
+                                            <IconButton
+                                                onClick={handleSubmit}
+                                                disabled={disabled || !input.trim() || isProcessing}
+                                                color="primary"
+                                                size="small"
+                                            >
+                                                {isProcessing ? <CircularProgress size={20} /> : <Send />}
+                                            </IconButton>
+                                        </span>
                                     </Tooltip>
                                 </Box>
                             </Box>

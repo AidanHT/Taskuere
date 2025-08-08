@@ -22,8 +22,9 @@ const meetingPatternsSchema = new mongoose.Schema({
         frequency: Number,
         lastMeeting: Date
     }],
+    // Important: use nested { type: String } to avoid Mongoose treating the array as [String]
     meetingTypes: [{
-        type: String, // 'meeting', 'appointment', 'reminder'
+        type: { type: String }, // 'meeting', 'appointment', 'reminder'
         frequency: Number,
         avgDuration: Number
     }],
@@ -43,6 +44,13 @@ const meetingPatternsSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+// Provide safe defaults for array fields to avoid undefined access
+meetingPatternsSchema.path('commonMeetingTitles').default([]);
+meetingPatternsSchema.path('preferredTimeSlots').default([]);
+meetingPatternsSchema.path('commonAttendees').default([]);
+meetingPatternsSchema.path('meetingTypes').default([]);
+meetingPatternsSchema.path('locationPatterns').default([]);
 
 // Indexes for performance
 meetingPatternsSchema.index({ user: 1 });

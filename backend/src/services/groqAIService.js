@@ -299,6 +299,11 @@ Respond ONLY with valid JSON:
 
     /**
      * Detect and analyze scheduling conflicts
+     *
+     * Important: This method performs deterministic server-side checks for
+     * conflicts and only uses the LLM for optional reasoning and suggestions.
+     * The final hasConflicts flag is decided by deterministic logic to avoid
+     * false positives that would block creation.
      */
     async detectConflicts(proposedAppointment, userId) {
         if (!this.isEnabled) {
@@ -307,9 +312,12 @@ Respond ONLY with valid JSON:
 
         try {
             const aiSettings = await AISettings.findOne({ user: userId });
-            
-            // Get conflicting appointments
-            const conflicts = await Appointment.find({
+
+            const start = new Date(proposedAppointment.startTime);
+            const end = new Date(proposedAppointment.endTime);
+
+            // 1) Find overlapping appointments for the user
+            const overlappingAppointments = await Appointment.find({
                 $or: [
                     { creator: userId },
                     { 'attendees.user': userId }
@@ -317,90 +325,212 @@ Respond ONLY with valid JSON:
                 $and: [
                     {
                         $or: [
-                            {
-                                startTime: {
-                                    $lt: new Date(proposedAppointment.endTime),
-                                    $gte: new Date(proposedAppointment.startTime)
-                                }
-                            },
-                            {
-                                endTime: {
-                                    $gt: new Date(proposedAppointment.startTime),
-                                    $lte: new Date(proposedAppointment.endTime)
-                                }
-                            },
-                            {
-                                $and: [
-                                    { startTime: { $lte: new Date(proposedAppointment.startTime) } },
-                                    { endTime: { $gte: new Date(proposedAppointment.endTime) } }
-                                ]
-                            }
+                            { startTime: { $lt: end, $gte: start } },
+                            { endTime: { $gt: start, $lte: end } },
+                            { $and: [ { startTime: { $lte: start } }, { endTime: { $gte: end } } ] }
                         ]
                     }
                 ]
             });
 
-            const systemPrompt = `You are an expert conflict detection AI. Analyze the proposed appointment for scheduling conflicts and provide resolution strategies.
+            // 2) Deterministic conflict checks
+            const deterministicConflicts = [];
 
-User Settings:
-- Buffer Time Required: ${aiSettings?.bufferTime || 15} minutes
-- Max Daily Meetings: ${aiSettings?.maxDailyMeetings || 8}
-- Working Hours: ${aiSettings?.workingHours?.start || '09:00'} - ${aiSettings?.workingHours?.end || '17:00'}
-- Allow Weekends: ${aiSettings?.preferences?.allowWeekends || false}
+            // Overlap conflicts
+            for (const apt of overlappingAppointments) {
+                deterministicConflicts.push({
+                    type: 'time_overlap',
+                    severity: 'high',
+                    description: `Overlaps with "${apt.title}" from ${apt.startTime.toISOString()} to ${apt.endTime.toISOString()}`,
+                    conflictingAppointmentId: apt._id,
+                    suggestedResolutions: [
+                        {
+                            type: 'reschedule',
+                            description: 'Move this appointment to a free slot that does not overlap.',
+                            newTimeSlot: null,
+                            confidence: 0.9,
+                            pros: ['Avoids direct overlap'],
+                            cons: []
+                        }
+                    ]
+                });
+            }
 
-Proposed Appointment:
-${JSON.stringify(proposedAppointment, null, 2)}
+            // Buffer time conflict
+            const requiredBufferMinutes = aiSettings?.bufferTime ?? 15;
+            // Define day bounds once for reuse
+            const startOfDay = new Date(start);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(start);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (requiredBufferMinutes > 0) {
+                const bufferMillis = requiredBufferMinutes * 60 * 1000;
+                // Get same-day appointments to evaluate buffers before/after
 
-Conflicting Appointments:
-${JSON.stringify(conflicts.map(apt => ({
-    id: apt._id,
-    title: apt.title,
-    start: apt.startTime,
-    end: apt.endTime,
-    type: apt.type,
-    status: apt.status
-})), null, 2)}
+                const sameDayAppointments = await Appointment.find({
+                    $or: [
+                        { creator: userId },
+                        { 'attendees.user': userId }
+                    ],
+                    startTime: { $lte: endOfDay },
+                    endTime: { $gte: startOfDay }
+                });
 
-Respond ONLY with valid JSON:
+                for (const apt of sameDayAppointments) {
+                    const gapBefore = start.getTime() - apt.endTime.getTime();
+                    const gapAfter = apt.startTime.getTime() - end.getTime();
+                    if ((gapBefore >= 0 && gapBefore < bufferMillis) || (gapAfter >= 0 && gapAfter < bufferMillis)) {
+                        deterministicConflicts.push({
+                            type: 'buffer_violation',
+                            severity: 'medium',
+                            description: `Less than ${requiredBufferMinutes} minutes buffer near "${apt.title}"`,
+                            conflictingAppointmentId: apt._id,
+                            suggestedResolutions: [
+                                {
+                                    type: 'reschedule',
+                                    description: `Shift by at least ${requiredBufferMinutes} minutes to satisfy buffer requirements.`,
+                                    newTimeSlot: null,
+                                    confidence: 0.7,
+                                    pros: ['Respects recovery/travel time'],
+                                    cons: []
+                                }
+                            ]
+                        });
+                    }
+                }
+            }
 
-{
-  "hasConflicts": boolean,
-  "conflicts": [
-    {
-      "type": "time_overlap|buffer_violation|too_many_meetings|outside_working_hours|weekend_conflict",
-      "severity": "low|medium|high|critical",
-      "description": "Clear description of the conflict",
-      "conflictingAppointmentId": "appointment_id or null",
-      "suggestedResolutions": [
-        {
-          "type": "reschedule|shorten|move_other|decline|accept_anyway",
-          "description": "How to resolve this conflict",
-          "newTimeSlot": {
-            "startTime": "ISO datetime or null",
-            "endTime": "ISO datetime or null"
-          },
-          "confidence": 0.0-1.0,
-          "pros": ["advantage 1"],
-          "cons": ["disadvantage 1"]
-        }
-      ]
-    }
-  ],
-  "overallRecommendation": "accept|reschedule|decline",
-  "reasoning": "Detailed explanation of recommendation"
-}`;
+            // Working hours and weekend conflicts
+            const workingStartStr = aiSettings?.workingHours?.start ?? '09:00';
+            const workingEndStr = aiSettings?.workingHours?.end ?? '17:00';
+            const [workStartHour] = workingStartStr.split(':').map(Number);
+            const [workEndHour] = workingEndStr.split(':').map(Number);
+            const startHour = start.getHours();
+            const endHour = end.getHours();
+            const allowWeekends = aiSettings?.preferences?.allowWeekends ?? false;
+            const isWeekend = [0, 6].includes(start.getDay());
 
-            const response = await this.groq.chat.completions.create({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: 'Please analyze this proposed appointment for conflicts.' }
+            if (!allowWeekends && isWeekend) {
+                deterministicConflicts.push({
+                    type: 'weekend_conflict',
+                    severity: 'low',
+                    description: 'User preferences do not allow weekend meetings.',
+                    conflictingAppointmentId: null,
+                    suggestedResolutions: [
+                        {
+                            type: 'reschedule',
+                            description: 'Move to a weekday within working hours.',
+                            newTimeSlot: null,
+                            confidence: 0.6,
+                            pros: ['Aligns with preferences'],
+                            cons: []
+                        }
+                    ]
+                });
+            }
+
+            if (startHour < workStartHour || endHour > workEndHour) {
+                deterministicConflicts.push({
+                    type: 'outside_working_hours',
+                    severity: 'low',
+                    description: `Proposed time is outside working hours (${workingStartStr}-${workingEndStr}).`,
+                    conflictingAppointmentId: null,
+                    suggestedResolutions: [
+                        {
+                            type: 'reschedule',
+                            description: 'Move inside stated working hours.',
+                            newTimeSlot: null,
+                            confidence: 0.6,
+                            pros: ['Higher availability'],
+                            cons: []
+                        }
+                    ]
+                });
+            }
+
+            // Max daily meetings
+            const maxDaily = aiSettings?.maxDailyMeetings ?? 8;
+            const dailyCount = await Appointment.countDocuments({
+                $or: [
+                    { creator: userId },
+                    { 'attendees.user': userId }
                 ],
-                model: this.model,
-                temperature: 0.2,
-                max_tokens: 2000
+                startTime: { $gte: new Date(startOfDay) },
+                endTime: { $lte: new Date(endOfDay) }
             });
+            if (dailyCount + 1 > maxDaily) {
+                deterministicConflicts.push({
+                    type: 'too_many_meetings',
+                    severity: 'medium',
+                    description: `Daily meeting limit (${maxDaily}) would be exceeded.`,
+                    conflictingAppointmentId: null,
+                    suggestedResolutions: [
+                        {
+                            type: 'decline',
+                            description: 'Reduce number of meetings on this day or move to another day.',
+                            newTimeSlot: null,
+                            confidence: 0.5,
+                            pros: ['Keeps workload manageable'],
+                            cons: []
+                        }
+                    ]
+                });
+            }
 
-            return JSON.parse(response.choices[0].message.content);
+            // Only treat blocking conflicts as true conflicts; other policy-based issues are warnings
+            const nonBlockingTypes = new Set(['outside_working_hours', 'weekend_conflict']);
+            const hasDeterministicConflicts = deterministicConflicts.some(c => !nonBlockingTypes.has(c.type));
+            const nonBlockingWarnings = deterministicConflicts.filter(c => nonBlockingTypes.has(c.type));
+
+            // Ask LLM for reasoning/suggestions, but DO NOT trust its hasConflicts boolean
+            let aiAugmentation = { conflicts: [], reasoning: '', overallRecommendation: hasDeterministicConflicts ? 'reschedule' : 'accept' };
+            try {
+                const systemPrompt = `You are an expert scheduling assistant. Given the proposed appointment, user settings and existing events, provide reasoning and suggestions. Do not invent conflicts if none are present. Respond only with JSON.`;
+                const llmPayload = {
+                    proposedAppointment,
+                    userSettings: {
+                        bufferTime: aiSettings?.bufferTime ?? 15,
+                        maxDailyMeetings: aiSettings?.maxDailyMeetings ?? 8,
+                        workingHours: aiSettings?.workingHours ?? { start: '09:00', end: '17:00' },
+                        allowWeekends
+                    },
+                    overlappingAppointments: overlappingAppointments.map(a => ({
+                        id: a._id,
+                        title: a.title,
+                        start: a.startTime,
+                        end: a.endTime
+                    })),
+                    deterministicConflicts
+                };
+
+                const response = await this.groq.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: JSON.stringify(llmPayload) }
+                    ],
+                    model: this.model,
+                    temperature: 0.2,
+                    max_tokens: 1400
+                });
+
+                const parsed = JSON.parse(response.choices[0].message.content || '{}');
+                aiAugmentation = {
+                    conflicts: Array.isArray(parsed.conflicts) ? parsed.conflicts : [],
+                    reasoning: parsed.reasoning || '',
+                    overallRecommendation: parsed.overallRecommendation || (hasDeterministicConflicts ? 'reschedule' : 'accept')
+                };
+            } catch (llmError) {
+                // If LLM augmentation fails, proceed with deterministic output only
+                console.warn('LLM augmentation failed, falling back to deterministic conflicts:', llmError.message);
+            }
+
+            return {
+                hasConflicts: hasDeterministicConflicts,
+                conflicts: [...deterministicConflicts, ...aiAugmentation.conflicts],
+                warnings: nonBlockingWarnings,
+                overallRecommendation: aiAugmentation.overallRecommendation,
+                reasoning: aiAugmentation.reasoning
+            };
 
         } catch (error) {
             console.error('Error detecting conflicts:', error);
