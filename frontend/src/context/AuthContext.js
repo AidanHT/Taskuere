@@ -2,8 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
+// Create authentication context
 const AuthContext = createContext(null);
 
+// Custom hook to use authentication context
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -13,42 +15,43 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null); // Store authenticated user data
+    const [loading, setLoading] = useState(true); // Loading state while checking authentication
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token'); // Retrieve token from local storage
         if (token) {
             try {
-                const decoded = jwtDecode(token);
+                const decoded = jwtDecode(token); // Decode the JWT token
                 // Check if token is expired
                 if (decoded.exp * 1000 < Date.now()) {
-                    localStorage.removeItem('token');
+                    localStorage.removeItem('token'); // Remove expired token
                     setUser(null);
                 } else {
-                    // Set axios default header
+                    // Set axios default header for authorization
                     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                    // Fetch user data
-                    fetchUserData();
+                    fetchUserData(); // Fetch user data from the server
                 }
             } catch (error) {
-                localStorage.removeItem('token');
+                localStorage.removeItem('token'); // Handle invalid token
                 setUser(null);
             }
         }
-        setLoading(false);
+        setLoading(false); // Set loading to false after checking authentication
     }, []);
 
+    // Fetch user data from API
     const fetchUserData = async () => {
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/users/me`);
             setUser(response.data);
         } catch (error) {
-            localStorage.removeItem('token');
+            localStorage.removeItem('token'); // Handle error by clearing token
             setUser(null);
         }
     };
 
+    // Login function
     const login = async (email, password) => {
         try {
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
@@ -57,9 +60,9 @@ export const AuthProvider = ({ children }) => {
             });
 
             const { token, user } = response.data;
-            localStorage.setItem('token', token);
+            localStorage.setItem('token', token); // Store token
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            setUser(user);
+            setUser(user); // Set user data
             return { success: true };
         } catch (error) {
             return {
@@ -69,6 +72,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Register function
     const register = async (username, email, password) => {
         try {
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
@@ -90,16 +94,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Logout function
     const logout = () => {
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
-        setUser(null);
+        localStorage.removeItem('token'); // Remove token from local storage
+        delete axios.defaults.headers.common['Authorization']; // Remove auth header
+        setUser(null); // Reset user state
     };
 
+    // Update user profile function
     const updateProfile = async (data) => {
         try {
             const response = await axios.put(`${process.env.REACT_APP_API_URL}/api/users/me`, data);
-            setUser(response.data);
+            setUser(response.data); // Update user state with new data
             return { success: true };
         } catch (error) {
             return {
@@ -109,6 +115,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Change password function
     const changePassword = async (currentPassword, newPassword) => {
         try {
             await axios.put(`${process.env.REACT_APP_API_URL}/api/users/me/password`, {
@@ -124,10 +131,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Delete account function
     const deleteAccount = async () => {
         try {
             await axios.delete(`${process.env.REACT_APP_API_URL}/api/users/me`);
-            logout();
+            logout(); // Logout user after account deletion
             return { success: true };
         } catch (error) {
             return {
@@ -137,6 +145,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Provide authentication functions and state to the application
     const value = {
         user,
         loading,
@@ -151,4 +160,4 @@ export const AuthProvider = ({ children }) => {
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export default AuthContext; 
+export default AuthContext;

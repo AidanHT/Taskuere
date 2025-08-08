@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
+import AIAssistant from './pages/AIAssistant';
 
 // Components
 import Layout from './components/Layout';
@@ -88,6 +89,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Profile />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/ai-assistant"
+                  element={
+                    <PrivateRoute>
+                      <AIAssistant />
                     </PrivateRoute>
                   }
                 />

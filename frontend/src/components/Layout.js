@@ -23,41 +23,48 @@ import {
     Person,
     AdminPanelSettings,
     Logout,
+    Psychology,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
-const drawerWidth = 240;
+const drawerWidth = 240; // Sidebar width
 
 const Layout = () => {
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [mobileOpen, setMobileOpen] = useState(false); // State for mobile drawer
+    const { user, logout } = useAuth(); // Get user authentication data
+    const navigate = useNavigate(); // Hook for navigation
+    const location = useLocation(); // Get current route location
+    const theme = useTheme(); // Get MUI theme
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Check if screen is mobile
 
+    // Toggle drawer for mobile view
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
 
+    // Handle navigation to different routes
     const handleNavigation = (path) => {
         navigate(path);
         if (isMobile) {
-            setMobileOpen(false);
+            setMobileOpen(false); // Close drawer on mobile after navigation
         }
     };
 
+    // Handle user logout
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/login'); // Redirect to login page
     };
 
+    // Menu items for navigation
     const menuItems = [
         { text: 'Dashboard', icon: <Dashboard />, path: '/' },
         { text: 'Calendar', icon: <CalendarMonth />, path: '/calendar' },
+        { text: 'AI Assistant', icon: <Psychology />, path: '/ai-assistant' },
         { text: 'Profile', icon: <Person />, path: '/profile' },
     ];
 
+    // Add Admin Panel option if user is an admin
     if (user?.role === 'admin') {
         menuItems.push({
             text: 'Admin Panel',
@@ -66,6 +73,7 @@ const Layout = () => {
         });
     }
 
+    // Define the sidebar drawer
     const drawer = (
         <div>
             <Toolbar>
@@ -79,7 +87,7 @@ const Layout = () => {
                         button
                         key={item.text}
                         onClick={() => handleNavigation(item.path)}
-                        selected={location.pathname === item.path}
+                        selected={location.pathname === item.path} // Highlight active route
                     >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.text} />
@@ -98,6 +106,7 @@ const Layout = () => {
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
+            {/* Top AppBar */}
             <AppBar
                 position="fixed"
                 sx={{
@@ -106,6 +115,7 @@ const Layout = () => {
                 }}
             >
                 <Toolbar>
+                    {/* Menu button for mobile */}
                     <IconButton
                         color="inherit"
                         aria-label="open drawer"
@@ -115,9 +125,11 @@ const Layout = () => {
                     >
                         <MenuIcon />
                     </IconButton>
+                    {/* Display page title dynamically based on route */}
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                         {menuItems.find((item) => item.path === location.pathname)?.text || 'Taskuere'}
                     </Typography>
+                    {/* Show username in AppBar */}
                     <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                         <Button color="inherit" onClick={() => handleNavigation('/profile')}>
                             {user?.username}
@@ -125,41 +137,37 @@ const Layout = () => {
                     </Box>
                 </Toolbar>
             </AppBar>
+            {/* Sidebar navigation */}
             <Box
                 component="nav"
                 sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
             >
+                {/* Mobile drawer */}
                 <Drawer
                     variant="temporary"
                     open={mobileOpen}
                     onClose={handleDrawerToggle}
-                    ModalProps={{
-                        keepMounted: true, // Better open performance on mobile.
-                    }}
+                    ModalProps={{ keepMounted: true }} // Improve performance on mobile
                     sx={{
                         display: { xs: 'block', sm: 'none' },
-                        '& .MuiDrawer-paper': {
-                            boxSizing: 'border-box',
-                            width: drawerWidth,
-                        },
+                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
                     }}
                 >
                     {drawer}
                 </Drawer>
+                {/* Permanent drawer for desktop */}
                 <Drawer
                     variant="permanent"
                     sx={{
                         display: { xs: 'none', sm: 'block' },
-                        '& .MuiDrawer-paper': {
-                            boxSizing: 'border-box',
-                            width: drawerWidth,
-                        },
+                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
                     }}
                     open
                 >
                     {drawer}
                 </Drawer>
             </Box>
+            {/* Main content area */}
             <Box
                 component="main"
                 sx={{
@@ -169,10 +177,10 @@ const Layout = () => {
                     mt: '64px',
                 }}
             >
-                <Outlet />
+                <Outlet /> {/* Render child components */}
             </Box>
         </Box>
     );
 };
 
-export default Layout; 
+export default Layout;

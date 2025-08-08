@@ -125,6 +125,7 @@ const startServer = async () => {
         app.use('/api/auth', require('./routes/auth'));
         app.use('/api/appointments', require('./routes/appointments'));
         app.use('/api/users', require('./routes/users'));
+        app.use('/api/ai', require('./routes/ai'));
 
         // Start the server
         const server = app.listen(PORT, HOST, () => {
