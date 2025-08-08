@@ -1,4 +1,5 @@
 const Groq = require('groq-sdk');
+const chrono = require('chrono-node');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const AISettings = require('../models/AISettings');
@@ -86,14 +87,50 @@ Current date/time: ${new Date().toISOString()}`;
             });
 
             const result = JSON.parse(response.choices[0].message.content);
-            
+
+            // Deterministically repair/normalize datetime fields for phrases like "next Wednesday"
+            const normalized = this.normalizeParsedIntentDate(text, result);
+
             // Validate and enhance the result
-            return this.validateAndEnhanceParsedIntent(result, userId);
+            return this.validateAndEnhanceParsedIntent(normalized, userId);
 
         } catch (error) {
             console.error('Error parsing natural language:', error);
             throw new Error('Failed to parse natural language input');
         }
+    }
+
+    /**
+     * Normalize parsed intent's datetime using chrono-node to fix LLM weekday offsets
+     */
+    normalizeParsedIntentDate(originalText, llmParsed) {
+        try {
+            // Only attempt when LLM returned something resembling a date-time
+            const rawText = String(originalText || '');
+            const parsed = chrono.parse(rawText, new Date(), { forwardDate: true });
+            if (parsed && parsed.length > 0) {
+                const best = parsed[0];
+                const date = best.date();
+                // If LLM had a date and it is different weekday within the following week window, prefer chrono
+                if (llmParsed?.intent?.datetime) {
+                    const llmDate = new Date(llmParsed.intent.datetime);
+                    const msDiff = Math.abs(llmDate.getTime() - date.getTime());
+                    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+                    const weekdayDiffers = llmDate.getDay() !== date.getDay();
+                    // Guard: only override when both are within a week and weekday differs (typical "next X" issue)
+                    if (msDiff < oneWeekMs && weekdayDiffers) {
+                        llmParsed.intent.datetime = date.toISOString();
+                    }
+                } else {
+                    // If LLM did not extract a datetime, adopt chrono result
+                    if (!llmParsed.intent) llmParsed.intent = {};
+                    llmParsed.intent.datetime = date.toISOString();
+                }
+            }
+        } catch {
+            // If normalization fails, keep original LLM result silently
+        }
+        return llmParsed;
     }
 
     /**
@@ -122,7 +159,7 @@ Current date/time: ${new Date().toISOString()}`;
             title = title.replace(/^(schedule|book|set up|create|plan)\s+/i, '').trim();
             if (!title) title = 'Meeting';
             
-            // Try to extract time information
+            // Try to extract time information deterministically (chrono)
             let datetime = null;
             let confidence = 0.3; // Low confidence for fallback
             
@@ -144,24 +181,21 @@ Current date/time: ${new Date().toISOString()}`;
                 }
             }
             
-            // If we found time indicators, try to parse a reasonable datetime
+            // If we found time indicators, parse with chrono for better weekday handling
             if (foundTime) {
-                const now = new Date();
-                if (lowerText.includes('tomorrow')) {
-                    datetime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                    datetime.setHours(14, 0, 0, 0); // Default 2 PM
-                } else if (lowerText.includes('today')) {
-                    datetime = new Date();
-                    datetime.setHours(datetime.getHours() + 1, 0, 0, 0); // Next hour
-                } else {
-                    // Default to next business day at 2 PM
-                    datetime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                    while (datetime.getDay() === 0 || datetime.getDay() === 6) {
-                        datetime.setDate(datetime.getDate() + 1);
+                try {
+                    const parsed = chrono.parse(text, new Date(), { forwardDate: true });
+                    if (parsed && parsed.length > 0) {
+                        datetime = parsed[0].date().toISOString();
                     }
-                    datetime.setHours(14, 0, 0, 0);
+                } catch {
+                    // fall back to old heuristic
+                    const now = new Date();
+                    const tmp = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                    while (tmp.getDay() === 0 || tmp.getDay() === 6) tmp.setDate(tmp.getDate() + 1);
+                    tmp.setHours(14, 0, 0, 0);
+                    datetime = tmp.toISOString();
                 }
-                datetime = datetime.toISOString();
             }
             
             // Determine meeting type
