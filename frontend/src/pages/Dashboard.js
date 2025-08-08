@@ -174,6 +174,11 @@ const Dashboard = () => {
                                         <MoreVertIcon />
                                     </IconButton>
                                 </Tooltip>
+                                <Tooltip title="Open collaboration">
+                                    <IconButton edge="end" onClick={() => navigate(`/collaboration/${appointment._id}`)}>
+                                        <Schedule />
+                                    </IconButton>
+                                </Tooltip>
                             </ListItemSecondaryAction>
                         </ListItem>
                     </React.Fragment>

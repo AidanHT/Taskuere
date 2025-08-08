@@ -25,6 +25,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const validationSchema = Yup.object({
     title: Yup.string().required('Title is required'),
@@ -41,6 +42,7 @@ const Calendar = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     // Fetch appointments
     const { data: appointments } = useQuery('appointments', async () => {
@@ -304,6 +306,14 @@ const Calendar = () => {
                             >
                                 {selectedEvent ? 'Update' : 'Create'}
                             </Button>
+                            {selectedEvent && (
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => navigate(`/collaboration/${selectedEvent.id}`)}
+                                >
+                                    Open Collaboration
+                                </Button>
+                            )}
                         </DialogActions>
                     </form>
                 </Dialog>

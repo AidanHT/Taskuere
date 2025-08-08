@@ -5,11 +5,18 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
+const http = require('http');
+const jwt = require('jsonwebtoken');
+const { WebSocketServer } = require('ws');
+// y-websocket util to attach Yjs collaborative doc syncing
+// eslint-disable-next-line import/no-extraneous-dependencies
+const { setupWSConnection } = require('y-websocket/bin/utils');
 const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = 'localhost';
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
 
 // Enable CORS for cross-origin requests
 app.use(cors());
@@ -126,12 +133,125 @@ const startServer = async () => {
         app.use('/api/appointments', require('./routes/appointments'));
         app.use('/api/users', require('./routes/users'));
         app.use('/api/ai', require('./routes/ai'));
+        app.use('/api/collaboration', require('./routes/collaboration'));
+
+        // Create HTTP server and attach Socket.IO and y-websocket providers
+        const server = http.createServer(app);
+
+        // Socket.IO setup with JWT auth and room-based collaboration
+        const { Server } = require('socket.io');
+        const io = new Server(server, {
+            cors: {
+                origin: CLIENT_ORIGIN,
+                credentials: true,
+            },
+        });
+
+        // In-memory participant registry per room to broadcast presence
+        const roomIdToParticipants = new Map();
+
+        const collabNamespace = io.of('/collab');
+        // Middleware to authenticate socket connections using JWT
+        collabNamespace.use((socket, next) => {
+            try {
+                const token = socket.handshake.auth?.token;
+                if (!token) return next(new Error('Authentication required'));
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                socket.user = { userId: decoded.userId };
+                return next();
+            } catch (err) {
+                return next(new Error('Invalid authentication token'));
+            }
+        });
+
+        collabNamespace.on('connection', (socket) => {
+            const { userId } = socket.user;
+
+            socket.on('room:join', ({ appointmentId, displayName }) => {
+                if (!appointmentId) return;
+                const roomId = String(appointmentId);
+
+                // Limit participant count for scalability (default 12)
+                const limit = Number(process.env.COLLAB_ROOM_LIMIT || 12);
+                const participants = roomIdToParticipants.get(roomId) || new Map();
+                if (!participants.has(socket.id) && participants.size >= limit) {
+                    socket.emit('room:full');
+                    return;
+                }
+
+                socket.join(roomId);
+                participants.set(socket.id, {
+                    socketId: socket.id,
+                    userId,
+                    displayName: displayName || 'Guest',
+                });
+                roomIdToParticipants.set(roomId, participants);
+                collabNamespace.to(roomId).emit('participants:update', Array.from(participants.values()));
+            });
+
+            socket.on('room:leave', ({ appointmentId }) => {
+                const roomId = String(appointmentId);
+                socket.leave(roomId);
+                const participants = roomIdToParticipants.get(roomId);
+                if (participants) {
+                    participants.delete(socket.id);
+                    collabNamespace.to(roomId).emit('participants:update', Array.from(participants.values()));
+                }
+            });
+
+            // Whiteboard drawing events (batched points)
+            socket.on('whiteboard:draw', ({ appointmentId, strokes }) => {
+                const roomId = String(appointmentId);
+                socket.to(roomId).emit('whiteboard:draw', { strokes });
+            });
+
+            socket.on('whiteboard:clear', ({ appointmentId }) => {
+                const roomId = String(appointmentId);
+                collabNamespace.to(roomId).emit('whiteboard:clear');
+            });
+
+            // WebRTC signaling via simple-peer
+            socket.on('webrtc:signal', ({ appointmentId, targetSocketId, signal }) => {
+                collabNamespace.to(targetSocketId).emit('webrtc:signal', {
+                    from: socket.id,
+                    signal,
+                    appointmentId,
+                });
+            });
+
+            socket.on('disconnect', () => {
+                // Clean up from all rooms
+                roomIdToParticipants.forEach((participants, roomId) => {
+                    if (participants.delete(socket.id)) {
+                        collabNamespace.to(roomId).emit('participants:update', Array.from(participants.values()));
+                    }
+                });
+            });
+        });
+
+        // y-websocket server mounted at /collab-sync for Yjs documents
+        const wss = new WebSocketServer({ noServer: true });
+        wss.on('connection', (ws, req) => {
+            setupWSConnection(ws, req);
+        });
+
+        server.on('upgrade', (request, socket, head) => {
+            const { url } = request;
+            if (url && url.startsWith('/collab-sync')) {
+                wss.handleUpgrade(request, socket, head, (ws) => {
+                    wss.emit('connection', ws, request);
+                });
+            } else {
+                socket.destroy();
+            }
+        });
 
         // Start the server
-        const server = app.listen(PORT, HOST, () => {
+        server.listen(PORT, HOST, () => {
             console.log(`Server is running at http://${HOST}:${PORT}`);
             console.log(`Test endpoint available at http://${HOST}:${PORT}/api/test`);
             console.log(`Email test endpoint available at http://${HOST}:${PORT}/api/test-email`);
+            console.log(`Yjs websocket endpoint at ws://${HOST}:${PORT}/collab-sync`);
         });
 
         // Handle unexpected server errors

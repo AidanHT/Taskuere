@@ -13,6 +13,7 @@ import Calendar from './pages/Calendar';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
 import AIAssistant from './pages/AIAssistant';
+import CollaborationWorkspace from './pages/CollaborationWorkspace';
 
 // Components
 import Layout from './components/Layout';
@@ -81,6 +82,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Calendar />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/collaboration/:appointmentId"
+                  element={
+                    <PrivateRoute>
+                      <CollaborationWorkspace />
                     </PrivateRoute>
                   }
                 />
