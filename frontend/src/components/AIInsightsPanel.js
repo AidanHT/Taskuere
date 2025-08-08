@@ -62,15 +62,7 @@ const AIInsightsPanel = ({
         }));
     };
 
-    const formatConfidence = (confidence) => {
-        return `${Math.round(confidence * 100)}%`;
-    };
-
-    const getConfidenceColor = (confidence) => {
-        if (confidence > 0.8) return 'success';
-        if (confidence > 0.6) return 'warning';
-        return 'error';
-    };
+    // confidence UI removed
 
     return (
         <Paper elevation={2} sx={{ mt: 2 }}>
@@ -90,13 +82,7 @@ const AIInsightsPanel = ({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Analytics />
                             <Typography variant="subtitle1">Processing Results</Typography>
-                            {aiData.confidence && (
-                                <Chip 
-                                    label={`${formatConfidence(aiData.confidence)} confident`}
-                                    color={getConfidenceColor(aiData.confidence)}
-                                    size="small"
-                                />
-                            )}
+                {/* confidence chip removed */}
                         </Box>
                     </AccordionSummary>
                     <AccordionDetails>
@@ -311,11 +297,7 @@ const AIInsightsPanel = ({
                                                 <Typography variant="subtitle2">
                                                     {format(parseISO(suggestion.startTime), 'PPP')}
                                                 </Typography>
-                                                <Chip 
-                                                    label={formatConfidence(suggestion.confidence)}
-                                                    color={getConfidenceColor(suggestion.confidence)}
-                                                    size="small"
-                                                />
+                                                {/* confidence chip removed */}
                                             </Box>
                                             
                                             <Typography variant="body1" sx={{ mb: 1 }}>

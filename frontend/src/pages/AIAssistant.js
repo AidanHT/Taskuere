@@ -97,7 +97,7 @@ const AIAssistant = () => {
                     type: result.stage,
                     message: result.message,
                     timestamp: new Date(),
-                    confidence: result.data?.parsedIntent?.confidence
+                    // confidence removed
                 },
                 ...prev.slice(0, 4) // Keep only last 5 items
             ]);
@@ -282,11 +282,7 @@ const AIAssistant = () => {
                                                         {activity.timestamp.toLocaleTimeString()}
                                                     </Typography>
                                                 </Box>
-                                                {activity.confidence && (
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {Math.round(activity.confidence * 100)}%
-                                                    </Typography>
-                                                )}
+                                                {/* confidence removed */}
                                             </Box>
                                         </CardContent>
                                     </Card>

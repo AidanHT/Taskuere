@@ -137,7 +137,7 @@ class AIAssistantService {
             // Step 1: Parse natural language
             const parseResult = await this.parseNaturalLanguage(text, context);
             
-            if (!parseResult.success || parseResult.data.confidence < 0.5) {
+            if (!parseResult.success) {
                 return {
                     success: false,
                     stage: 'parsing',
@@ -226,10 +226,7 @@ class AIAssistantService {
         }
     }
 
-    // Utility method to format confidence as percentage
-    formatConfidence(confidence) {
-        return `${Math.round(confidence * 100)}%`;
-    }
+    // Removed confidence formatting utility (no longer displayed)
 
     // Utility method to check if AI is likely to understand the input
     isInputClear(text) {

@@ -253,11 +253,7 @@ const SmartSchedulingWizard = ({ open, onClose, onScheduleCreated }) => {
                                                     <AccessTime color="primary" fontSize="small" />
                                                     {format(parseISO(suggestion.startTime), 'PPP p')} - 
                                                     {format(parseISO(suggestion.endTime), 'p')}
-                                                    <Chip 
-                                                        label={`${Math.round(suggestion.confidence * 100)}% match`}
-                                                        size="small"
-                                                        color={suggestion.confidence > 0.8 ? 'success' : 'default'}
-                                                    />
+                                                    {/* confidence chip removed */}
                                                 </Box>
                                             }
                                             secondary={

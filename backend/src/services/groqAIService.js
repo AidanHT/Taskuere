@@ -43,7 +43,7 @@ class GroqAIService {
             const aiSettings = await AISettings.findOne({ user: userId });
             const patterns = await MeetingPatterns.findOne({ user: userId });
 
-            const systemPrompt = `You are an expert scheduling assistant. Parse the natural language input and extract structured scheduling information.
+            const systemPrompt = `You are a precise scheduling assistant. Parse the user's request and extract structured scheduling information with deterministic date interpretation.
 
 User Context:
 - Name: ${user.username}
@@ -51,17 +51,25 @@ User Context:
 - Timezone: ${aiSettings?.timeZone || 'America/New_York'}
 - Working Hours: ${aiSettings?.workingHours?.start || '09:00'} - ${aiSettings?.workingHours?.end || '17:00'}
 - Default Meeting Duration: ${aiSettings?.defaultMeetingDuration || 60} minutes
+- Buffer Time: ${aiSettings?.bufferTime || 15} minutes
+- Preferences: allowWeekends=${aiSettings?.preferences?.allowWeekends ?? false}
 
-Common patterns for this user:
+User Patterns (for title/type hints only):
 ${patterns ? JSON.stringify(patterns.commonMeetingTitles?.slice(0, 5) || [], null, 2) : 'No patterns available'}
 
-Parse the following text and respond ONLY with valid JSON:
+Interpretation Rules (very important):
+1) If the user says "next <weekday>", interpret it as the occurrence of that weekday in the next calendar week (not this week). Example: if today is Monday 2025-06-02, "next Wednesday" = 2025-06-11.
+2) If the user says "this <weekday>", interpret it as the upcoming occurrence of that weekday in the current week; if it already passed, move to next week.
+3) If the user does not specify a time, choose a reasonable time within working hours (default midpoint between start and end) and set duration to the user's default.
+4) The "datetime" must be in the future. If not possible, set it to null and add an ambiguity.
+5) Always return datetimes in ISO 8601 (UTC). Do not include local offset strings.
 
+Output JSON ONLY, no prose. Use this schema (do not rename keys):
 {
   "confidence": 0.0-1.0,
   "intent": {
     "title": "string",
-    "datetime": "ISO 8601 datetime or null if unclear",
+    "datetime": "ISO 8601 UTC datetime or null if unclear",
     "duration": "number in minutes",
     "attendees": ["email@example.com"],
     "location": "string or null",
@@ -71,10 +79,11 @@ Parse the following text and respond ONLY with valid JSON:
     "recurringPattern": "daily|weekly|monthly|none"
   },
   "ambiguities": ["list of unclear elements"],
-  "suggestions": ["clarifying questions if needed"]
+  "suggestions": ["clarifying questions if needed"],
+  "interpretation": { "notes": "brief explanation of any date assumptions" }
 }
 
-Current date/time: ${new Date().toISOString()}`;
+Current date/time (UTC): ${new Date().toISOString()}`;
 
             const response = await this.groq.chat.completions.create({
                 messages: [
@@ -82,7 +91,7 @@ Current date/time: ${new Date().toISOString()}`;
                     { role: 'user', content: text }
                 ],
                 model: this.model,
-                temperature: 0.3,
+                temperature: 0.2,
                 max_tokens: 1000
             });
 
@@ -268,7 +277,7 @@ Current date/time: ${new Date().toISOString()}`;
                 }
             });
 
-            const systemPrompt = `You are an expert scheduling optimization AI. Suggest ${numberOfSuggestions} optimal time slots for a meeting.
+            const systemPrompt = `You are an expert scheduling optimization AI. Suggest ${numberOfSuggestions} optimal time slots for a meeting. Respect the user's timezone, working hours, and buffer preferences. Prefer contiguous free slots and avoid tight buffers.
 
 User Preferences:
 - Working Hours: ${aiSettings?.workingHours?.start || '09:00'} - ${aiSettings?.workingHours?.end || '17:00'}
@@ -278,7 +287,7 @@ User Preferences:
 - Allow Weekends: ${aiSettings?.preferences?.allowWeekends || false}
 - Max Daily Meetings: ${aiSettings?.maxDailyMeetings || 8}
 
-Existing Appointments:
+Existing Appointments (UTC):
 ${JSON.stringify(existingAppointments.map(apt => ({
     title: apt.title,
     start: apt.startTime,
@@ -291,12 +300,12 @@ ${patterns ? JSON.stringify({
     commonMeetingTypes: patterns.meetingTypes?.slice(0, 3) || []
 }, null, 2) : 'No patterns available'}
 
-Meeting Request:
+Meeting Request (normalized):
 ${JSON.stringify(parsedIntent, null, 2)}
 
 Current date/time: ${new Date().toISOString()}
 
-Respond ONLY with valid JSON:
+Respond ONLY with valid JSON. All output datetimes must be ISO 8601 UTC.
 
 {
   "suggestions": [
@@ -319,7 +328,7 @@ Respond ONLY with valid JSON:
                     { role: 'user', content: `Please suggest time slots for this meeting request.` }
                 ],
                 model: this.model,
-                temperature: 0.4,
+                temperature: 0.25,
                 max_tokens: 1500
             });
 
@@ -519,7 +528,9 @@ Respond ONLY with valid JSON:
             // Ask LLM for reasoning/suggestions, but DO NOT trust its hasConflicts boolean
             let aiAugmentation = { conflicts: [], reasoning: '', overallRecommendation: hasDeterministicConflicts ? 'reschedule' : 'accept' };
             try {
-                const systemPrompt = `You are an expert scheduling assistant. Given the proposed appointment, user settings and existing events, provide reasoning and suggestions. Do not invent conflicts if none are present. Respond only with JSON.`;
+                const systemPrompt = `You are an expert conflict analysis assistant. Given the proposed appointment, user settings and existing events, provide concise reasoning and suggestions. Do not invent conflicts. Prefer practical, minimal-change resolutions.
+
+All times are ISO 8601 UTC. Respond only with JSON.`;
                 const llmPayload = {
                     proposedAppointment,
                     userSettings: {

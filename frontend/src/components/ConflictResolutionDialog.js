@@ -152,11 +152,7 @@ const ConflictResolutionDialog = ({ open, onClose, conflictData, onResolve }) =>
                                             <Typography variant="subtitle1" sx={{ ml: 1, flexGrow: 1 }}>
                                                 {resolution.type.replace('_', ' ').toUpperCase()}
                                             </Typography>
-                                            <Chip
-                                                label={`${Math.round(resolution.confidence * 100)}% confident`}
-                                                color={resolution.confidence > 0.8 ? 'success' : 'warning'}
-                                                size="small"
-                                            />
+                                {/* confidence chip removed */}
                                         </Box>
                                         
                                         <Typography variant="body2" sx={{ mb: 1 }}>

@@ -81,7 +81,6 @@ const NaturalLanguageInput = ({
             
             if (result.success) {
                 setLastResult(result);
-                setConfidence(result.data.parsedIntent?.confidence);
                 onResult?.(result);
                 
                 // Speak the result if user prefers audio feedback
@@ -146,13 +145,7 @@ const NaturalLanguageInput = ({
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                     AI Scheduling Assistant
                 </Typography>
-                {confidence && (
-                    <Chip 
-                        label={`${aiAssistantService.formatConfidence(confidence)} confident`}
-                        color={confidence > 0.8 ? 'success' : confidence > 0.6 ? 'warning' : 'error'}
-                        size="small"
-                    />
-                )}
+                {/* confidence display removed */}
             </Box>
 
             {/* Main input area */}
