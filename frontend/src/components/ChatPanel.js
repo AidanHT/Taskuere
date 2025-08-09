@@ -17,7 +17,9 @@ const ChatPanel = ({ appointmentId, socket, displayName }) => {
           headers: { Authorization: `Bearer ${token}` },
           params: { limit: 100 },
         });
-        setMessages(res.data || []);
+        const list = res.data || [];
+        setMessages(list);
+        setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 0);
       } catch (e) {
         // ignore
       }
@@ -29,8 +31,22 @@ const ChatPanel = ({ appointmentId, socket, displayName }) => {
     const s = socket.current;
     if (!s) return undefined;
     const handleIncoming = (payload) => {
-      setMessages((prev) => [...prev, payload]);
-      listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+      // attempt dedupe against last local optimistic entry
+      let shouldAdd = true;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.__local && last.content === payload.content && (Math.abs(new Date(payload.createdAt).getTime() - new Date(last.createdAt).getTime()) < 2000)) {
+          // replace local with server payload
+          shouldAdd = false;
+          const updated = [...prev];
+          updated[updated.length - 1] = payload;
+          return updated;
+        }
+        return [...prev, payload];
+      });
+      if (shouldAdd) {
+        setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 0);
+      }
     };
     s.on('chat:message', handleIncoming);
     return () => s.off('chat:message', handleIncoming);
@@ -38,8 +54,21 @@ const ChatPanel = ({ appointmentId, socket, displayName }) => {
 
   const send = () => {
     if (!input.trim()) return;
-    socket.current?.emit('chat:message', { appointmentId, content: input.trim(), displayName });
+    const content = input.trim();
+    const optimistic = {
+      _id: `local-${Date.now()}`,
+      appointment: appointmentId,
+      sender: 'me',
+      senderDisplayName: displayName,
+      content,
+      type: 'text',
+      createdAt: new Date().toISOString(),
+      __local: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
     setInput('');
+    setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' }), 0);
+    socket.current?.emit('chat:message', { appointmentId, content, displayName });
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import FullCalendar from '@fullcalendar/react';
@@ -25,7 +25,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const validationSchema = Yup.object({
     title: Yup.string().required('Title is required'),
@@ -43,11 +43,14 @@ const Calendar = () => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Fetch appointments
     const { data: appointments } = useQuery('appointments', async () => {
+        const token = localStorage.getItem('token');
         const response = await axios.get(
-            `${process.env.REACT_APP_API_URL}/api/appointments`
+            `${process.env.REACT_APP_API_URL}/api/appointments`,
+            { headers: { Authorization: `Bearer ${token}` } }
         );
         return response.data;
     });
@@ -55,9 +58,11 @@ const Calendar = () => {
     // Create appointment mutation
     const createAppointment = useMutation(
         async (values) => {
+            const token = localStorage.getItem('token');
             const response = await axios.post(
                 `${process.env.REACT_APP_API_URL}/api/appointments`,
-                values
+                values,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
             return response.data;
         },
@@ -187,6 +192,31 @@ const Calendar = () => {
             type: appointment.type,
         },
     })) || [];
+
+    // Instant meeting quick start via query param
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const instant = params.get('instantMeeting');
+        if (instant) {
+            const now = new Date();
+            const end = new Date(now.getTime() + 30 * 60000);
+            createAppointment.mutate({
+                title: 'Instant Meeting',
+                description: 'Quick start collaborative meeting',
+                location: 'Online',
+                type: 'meeting',
+                startTime: now.toISOString(),
+                endTime: end.toISOString(),
+            }, {
+                onSuccess: (appt) => {
+                    navigate(`/collaboration/${appt._id}`);
+                }
+            });
+            // remove the param to avoid repeated creation
+            navigate('/calendar', { replace: true });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <Box sx={{ height: 'calc(100vh - 100px)' }}>

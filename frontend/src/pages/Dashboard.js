@@ -30,6 +30,8 @@ import {
     MoreVert as MoreVertIcon,
     Done as DoneIcon,
     Cancel as CancelIcon,
+    Groups,
+    PlayCircleFilled,
 } from '@mui/icons-material';
 import { format, isAfter } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -273,6 +275,38 @@ const Dashboard = () => {
                         icon={<PendingActions sx={{ color: 'warning.main' }} />}
                         color="warning"
                     />
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>Real-time Collaboration</Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Meet with your team in a shared space: video, whiteboard, and live document editing.
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <IconButton color="primary" onClick={() => navigate('/calendar')}>
+                                <Groups />
+                            </IconButton>
+                            <IconButton color="secondary" onClick={() => navigate('/calendar?instantMeeting=true')}>
+                                <PlayCircleFilled />
+                            </IconButton>
+                        </Box>
+                    </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>Start an Instant Meeting</Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Create a meeting for now with a custom duration and jump right in.
+                        </Typography>
+                        <Box>
+                            <IconButton color="primary" onClick={() => navigate('/calendar?instantMeeting=true')}>
+                                <PlayCircleFilled />
+                            </IconButton>
+                        </Box>
+                    </Paper>
                 </Grid>
             </Grid>
 

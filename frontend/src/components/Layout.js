@@ -24,6 +24,7 @@ import {
     AdminPanelSettings,
     Logout,
     Psychology,
+    Groups,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -62,6 +63,7 @@ const Layout = () => {
         { text: 'Calendar', icon: <CalendarMonth />, path: '/calendar' },
         { text: 'AI Assistant', icon: <Psychology />, path: '/ai-assistant' },
         { text: 'Profile', icon: <Person />, path: '/profile' },
+        { text: 'Collaboration', icon: <Groups />, path: '/calendar' },
     ];
 
     // Add Admin Panel option if user is an admin
@@ -87,7 +89,7 @@ const Layout = () => {
                         button
                         key={item.text}
                         onClick={() => handleNavigation(item.path)}
-                        selected={location.pathname === item.path} // Highlight active route
+                        selected={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))}
                     >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.text} />
@@ -127,7 +129,7 @@ const Layout = () => {
                     </IconButton>
                     {/* Display page title dynamically based on route */}
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                        {menuItems.find((item) => item.path === location.pathname)?.text || 'Taskuere'}
+                        {menuItems.find((item) => location.pathname.startsWith(item.path))?.text || 'Taskuere'}
                     </Typography>
                     {/* Show username in AppBar */}
                     <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
