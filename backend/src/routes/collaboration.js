@@ -3,6 +3,7 @@ const { auth } = require('../middleware/auth');
 const CollaborationRoom = require('../models/CollaborationRoom');
 const SharedDocument = require('../models/SharedDocument');
 const WhiteboardSnapshot = require('../models/WhiteboardSnapshot');
+const CollaborationMessage = require('../models/CollaborationMessage');
 
 const router = express.Router();
 
@@ -84,6 +85,21 @@ router.get('/documents/:appointmentId', auth, async (req, res) => {
     res.json(doc);
   } catch (err) {
     res.status(500).json({ message: 'Failed to get document', error: err.message });
+  }
+});
+
+// Chat history
+router.get('/chat/:appointmentId', auth, async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const messages = await CollaborationMessage.find({ appointment: appointmentId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    res.json(messages.reverse());
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to get chat history', error: err.message });
   }
 });
 

@@ -166,13 +166,37 @@ const startServer = async () => {
 
         collabNamespace.on('connection', (socket) => {
             const { userId } = socket.user;
+            const Appointment = require('./models/Appointment');
+            const CollaborationRoom = require('./models/CollaborationRoom');
 
-            socket.on('room:join', ({ appointmentId, displayName }) => {
+            socket.on('room:join', async ({ appointmentId, displayName }) => {
                 if (!appointmentId) return;
                 const roomId = String(appointmentId);
 
-                // Limit participant count for scalability (default 12)
-                const limit = Number(process.env.COLLAB_ROOM_LIMIT || 12);
+                // Authorization: ensure user is attendee or creator of appointment
+                try {
+                    const appt = await Appointment.findById(appointmentId).select('creator attendees');
+                    if (!appt) {
+                        socket.emit('room:error', { message: 'Appointment not found' });
+                        return;
+                    }
+                    const isCreator = String(appt.creator) === String(userId);
+                    const isAttendee = (appt.attendees || []).some((a) => String(a.user) === String(userId));
+                    if (!isCreator && !isAttendee) {
+                        socket.emit('room:error', { message: 'Not authorized for this appointment' });
+                        return;
+                    }
+                } catch (e) {
+                    socket.emit('room:error', { message: 'Authorization failed' });
+                    return;
+                }
+
+                // Limit participant count for scalability (default from room or env)
+                let limit = Number(process.env.COLLAB_ROOM_LIMIT || 12);
+                try {
+                    const room = await CollaborationRoom.findOne({ appointment: appointmentId }).select('participantLimit');
+                    if (room && room.participantLimit) limit = room.participantLimit;
+                } catch (_) { /* noop */ }
                 const participants = roomIdToParticipants.get(roomId) || new Map();
                 if (!participants.has(socket.id) && participants.size >= limit) {
                     socket.emit('room:full');
@@ -217,6 +241,34 @@ const startServer = async () => {
                     signal,
                     appointmentId,
                 });
+            });
+
+            // In-room chat
+            const CollaborationMessage = require('./models/CollaborationMessage');
+            socket.on('chat:message', async ({ appointmentId, content, displayName }) => {
+                try {
+                    if (!content || !appointmentId) return;
+                    const message = await CollaborationMessage.create({
+                        appointment: appointmentId,
+                        sender: userId,
+                        senderDisplayName: displayName,
+                        content,
+                        type: 'text',
+                    });
+                    const payload = {
+                        _id: String(message._id),
+                        appointment: String(message.appointment),
+                        sender: String(message.sender),
+                        senderDisplayName: message.senderDisplayName,
+                        content: message.content,
+                        type: message.type,
+                        createdAt: message.createdAt,
+                    };
+                    const roomId = String(appointmentId);
+                    collabNamespace.to(roomId).emit('chat:message', payload);
+                } catch (err) {
+                    // swallow
+                }
             });
 
             socket.on('disconnect', () => {

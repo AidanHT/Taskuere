@@ -26,6 +26,7 @@
         "winston": "^3.17.0",
         "ws": "^8.18.3",
         "y-websocket": "^1.5.4",
+        "yjs": "^13.6.27",
         "zod": "^3.24.1"
     },
     "devDependencies": {

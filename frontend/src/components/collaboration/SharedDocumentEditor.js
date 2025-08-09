@@ -14,7 +14,8 @@ const SharedDocumentEditor = ({ appointmentId }) => {
 
   useEffect(() => {
     if (!editor) return undefined;
-    const wsUrl = process.env.REACT_APP_API_URL.replace(/^http/, 'ws');
+    const httpBase = process.env.REACT_APP_API_URL || window.location.origin.replace(/:\d+$/, ':5000');
+    const wsUrl = httpBase.replace(/^http/, 'ws');
     const ydoc = new Y.Doc();
     const provider = new WebsocketProvider(`${wsUrl}/collab-sync`, `doc-${appointmentId}`, ydoc);
     const ytext = ydoc.getText('tiptap');
@@ -29,15 +30,19 @@ const SharedDocumentEditor = ({ appointmentId }) => {
     ytext.observe(yObserver);
 
     // Push local editor changes to Y
-    const unsubscribe = editor.on('transaction', () => {
+    const onEditorUpdate = () => {
       const plain = editor.getText();
-      ytext.delete(0, ytext.length);
-      ytext.insert(0, plain);
-    });
+      const current = ytext.toString();
+      if (current !== plain) {
+        ytext.delete(0, ytext.length);
+        ytext.insert(0, plain);
+      }
+    };
+    editor.on('update', onEditorUpdate);
 
     return () => {
       try { ytext.unobserve(yObserver); } catch (e) { /* noop */ }
-      try { unsubscribe && unsubscribe(); } catch (e) { /* noop */ }
+      try { editor.off('update', onEditorUpdate); } catch (e) { /* noop */ }
       try { provider.destroy(); } catch (e) { /* noop */ }
       try { ydoc.destroy(); } catch (e) { /* noop */ }
     };
