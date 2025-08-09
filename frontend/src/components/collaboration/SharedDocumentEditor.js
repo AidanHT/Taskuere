@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@mui/material';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -6,48 +6,42 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 const SharedDocumentEditor = ({ appointmentId }) => {
-  const ydoc = useMemo(() => new Y.Doc(), [appointmentId]);
-  const provider = useMemo(() => {
-    const url = process.env.REACT_APP_API_URL.replace(/^http/, 'ws');
-    return new WebsocketProvider(`${url}/collab-sync`, `doc-${appointmentId}`, ydoc);
-  }, [appointmentId, ydoc]);
-
-  const ytext = useMemo(() => ydoc.getText('tiptap'), [ydoc]);
-
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
     autofocus: true,
-    onUpdate: ({ editor: ed }) => {
-      // Local changes are automatically synced by tiptap-yjs alternative; here we are using ytext binding below
-    },
   });
 
   useEffect(() => {
     if (!editor) return undefined;
-    const updateFromY = () => {
-      editor.commands.setContent(ytext.toString() || '<p></p>', false);
+    const wsUrl = process.env.REACT_APP_API_URL.replace(/^http/, 'ws');
+    const ydoc = new Y.Doc();
+    const provider = new WebsocketProvider(`${wsUrl}/collab-sync`, `doc-${appointmentId}`, ydoc);
+    const ytext = ydoc.getText('tiptap');
+
+    const renderFromY = () => {
+      const content = ytext.toString();
+      editor.commands.setContent(content || '<p></p>', false);
     };
-    // Initialize from Y
-    updateFromY();
-    const observer = (event, transaction) => {
-      updateFromY();
-    };
-    ytext.observe(observer);
-    // Propagate from editor to Y
-    const handleTrans = editor.on('transaction', () => {
-      const json = editor.getText();
+    // Initialize from Y and subscribe to Y updates
+    renderFromY();
+    const yObserver = () => renderFromY();
+    ytext.observe(yObserver);
+
+    // Push local editor changes to Y
+    const unsubscribe = editor.on('transaction', () => {
+      const plain = editor.getText();
       ytext.delete(0, ytext.length);
-      ytext.insert(0, json);
+      ytext.insert(0, plain);
     });
+
     return () => {
-      ytext.unobserve(observer);
-      handleTrans();
-      provider.destroy();
-      editor.destroy();
-      ydoc.destroy();
+      try { ytext.unobserve(yObserver); } catch (e) { /* noop */ }
+      try { unsubscribe && unsubscribe(); } catch (e) { /* noop */ }
+      try { provider.destroy(); } catch (e) { /* noop */ }
+      try { ydoc.destroy(); } catch (e) { /* noop */ }
     };
-  }, [editor, provider, ydoc, ytext]);
+  }, [appointmentId, editor]);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

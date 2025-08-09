@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Box, Grid, Paper } from '@mui/material';
@@ -34,7 +34,6 @@ const CollaborationWorkspace = () => {
       }
     };
     ensureResources();
-    const url = apiUrl.replace(/^http/, 'ws');
     const socket = io(`${apiUrl}/collab`, { auth: { token } });
     socketRef.current = socket;
 

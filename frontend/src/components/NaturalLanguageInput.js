@@ -34,7 +34,7 @@ const NaturalLanguageInput = ({
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showHints, setShowHints] = useState(false);
-    const [confidence, setConfidence] = useState(null);
+    // removed unused confidence state to avoid ESLint warnings
     const [lastResult, setLastResult] = useState(null);
 
     // Speech recognition hooks
@@ -74,7 +74,7 @@ const NaturalLanguageInput = ({
         if (!input.trim() || isProcessing) return;
 
         setIsProcessing(true);
-        setConfidence(null);
+        // no-op
 
         try {
             const result = await aiAssistantService.processSchedulingRequest(input.trim());
@@ -118,7 +118,7 @@ const NaturalLanguageInput = ({
 
     const handleClear = () => {
         setInput('');
-        setConfidence(null);
+        // no-op
         setLastResult(null);
         cancel(); // Stop any ongoing speech
     };
