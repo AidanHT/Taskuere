@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ThemeProvider } from '@mui/material/styles';
+import { Box } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 
@@ -62,6 +63,7 @@ function App() {
                 },
               }}
             />
+            <Box sx={{ transition: 'background 600ms ease' }}>
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
@@ -122,6 +124,7 @@ function App() {
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Box>
           </Router>
         </AuthProvider>
       </ThemeProvider>

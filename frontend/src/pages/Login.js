@@ -32,6 +32,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { keyframes } from '@mui/system';
+import HeroCanvas from '../components/HeroCanvas';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -108,6 +109,36 @@ const Login = () => {
         window.scrollTo(0, 0);
     }, []);
 
+    useEffect(() => {
+        const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
+        // Hero elements
+        const title = document.querySelector('.hero-title');
+        const subtitle = document.querySelector('.hero-subtitle');
+        const cta = document.querySelector('.hero-cta');
+        [title, subtitle, cta].forEach((el, i) => {
+            if (!el) return;
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(16px) scale(0.98)';
+            el.style.transition = `opacity 700ms ${ease} ${i * 120}ms, transform 700ms ${ease} ${i * 120}ms`;
+            requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Feature cards stagger
+        const cards = Array.from(document.querySelectorAll('.feature-card'));
+        cards.forEach((el, i) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(16px)';
+            el.style.transition = `opacity 700ms ${ease} ${200 + i * 90}ms, transform 700ms ${ease} ${200 + i * 90}ms`;
+            requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            });
+        });
+    }, []);
+
     const formik = useFormik({
         initialValues: {
             email: '',
@@ -158,6 +189,7 @@ const Login = () => {
                     },
                 }}
             >
+                <HeroCanvas />
                 <Container maxWidth="md">
                     <Box sx={{ textAlign: 'center', position: 'relative' }}>
                         <Typography
@@ -172,7 +204,10 @@ const Login = () => {
                                 WebkitBackgroundClip: 'text',
                                 backgroundClip: 'text',
                                 animation: `${shine} 5s linear infinite`,
+                                position: 'relative',
+                                zIndex: 1,
                             }}
+                            className="hero-title"
                         >
                             Taskuere
                         </Typography>
@@ -183,9 +218,12 @@ const Login = () => {
                                 mb: 4,
                                 color: alpha('#fff', 0.9),
                                 fontWeight: 600,
+                                position: 'relative',
+                                zIndex: 1,
                             }}
+                            className="hero-subtitle"
                         >
-                            Streamline Your Schedule, Amplify Your Productivity
+                            AI Scheduling and Real-Time Collaboration — Supercharged
                         </Typography>
                         <Button
                             variant="contained"
@@ -204,7 +242,10 @@ const Login = () => {
                                 fontSize: '1.25rem',
                                 fontWeight: 'bold',
                                 boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                                position: 'relative',
+                                zIndex: 1,
                             }}
+                            className="hero-cta"
                         >
                             Get Started
                         </Button>
@@ -233,7 +274,7 @@ const Login = () => {
                 </Container>
             </Box>
 
-            {/* Features Section */}
+            {/* Features Section (expanded to highlight AI Assistant and Collaboration) */}
             <Box
                 id="features"
                 sx={{
@@ -261,6 +302,7 @@ const Login = () => {
                         {features.map((feature, index) => (
                             <Grid item xs={12} sm={6} md={4} key={index}>
                                 <Card
+                                    className="feature-card"
                                     sx={{
                                         height: '100%',
                                         background: '#ffffff',
@@ -270,6 +312,7 @@ const Login = () => {
                                         transition: 'all 0.3s ease-in-out',
                                         position: 'relative',
                                         overflow: 'hidden',
+                                        opacity: 0,
                                         '&::before': {
                                             content: '""',
                                             position: 'absolute',
@@ -332,6 +375,57 @@ const Login = () => {
                                 </Card>
                             </Grid>
                         ))}
+                        {/* AI Scheduler Highlight */}
+                        <Grid item xs={12}>
+                            <Card sx={{ p: 4 }}>
+                                <CardContent>
+                                    <Grid container spacing={3} alignItems="center">
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+                                                Meet your AI Scheduling Assistant
+                                            </Typography>
+                                            <Typography color="text.secondary" sx={{ mb: 2 }}>
+                                                Describe your meeting in plain language and get smart time suggestions, conflict detection, and one-click scheduling.
+                                            </Typography>
+                                            <Button variant="contained" size="large" component={RouterLink} to="/ai-assistant">
+                                                Try the Assistant
+                                            </Button>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <Box sx={{ position: 'relative', height: 220, borderRadius: 2, overflow: 'hidden', background: 'linear-gradient(135deg, #eef2ff, #fff0f6)' }}>
+                                                <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 30%, rgba(102,126,234,0.2), transparent 40%), radial-gradient(circle at 70% 70%, rgba(245,0,87,0.15), transparent 40%)' }} />
+                                            </Box>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+
+                        {/* Collaboration Highlight */}
+                        <Grid item xs={12}>
+                            <Card sx={{ p: 4 }}>
+                                <CardContent>
+                                    <Grid container spacing={3} alignItems="center" direction={{ xs: 'column-reverse', md: 'row' }}>
+                                        <Grid item xs={12} md={6}>
+                                            <Box sx={{ position: 'relative', height: 220, borderRadius: 2, overflow: 'hidden', background: 'linear-gradient(135deg, #f0fff4, #f0f5ff)' }}>
+                                                <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 70% 30%, rgba(16,185,129,0.2), transparent 40%), radial-gradient(circle at 30% 70%, rgba(59,130,246,0.15), transparent 40%)' }} />
+                                            </Box>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+                                                Real-Time Collaboration Suite
+                                            </Typography>
+                                            <Typography color="text.secondary" sx={{ mb: 2 }}>
+                                                Video conferencing, shared documents, and a collaborative whiteboard — all in one workspace.
+                                            </Typography>
+                                            <Button variant="outlined" size="large" component={RouterLink} to="/calendar">
+                                                Start a Meeting
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     </Grid>
                 </Container>
             </Box>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     AppBar,
@@ -27,6 +27,7 @@ import {
     Groups,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+// Use CSS transitions to avoid bundling issues with default exports
 
 const drawerWidth = 240; // Sidebar width
 
@@ -88,6 +89,7 @@ const Layout = () => {
                     <ListItem
                         button
                         key={item.text}
+                        className="nav-item"
                         onClick={() => handleNavigation(item.path)}
                         selected={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))}
                     >
@@ -104,6 +106,32 @@ const Layout = () => {
             </List>
         </div>
     );
+
+    useEffect(() => {
+        const el = document.querySelector('.route-view');
+        if (!el) return;
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        el.style.transition = 'opacity 400ms ease, transform 400ms ease';
+        requestAnimationFrame(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        });
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (!mobileOpen) return;
+        const items = Array.from(document.querySelectorAll('.nav-item'));
+        items.forEach((el, i) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(-10px)';
+            el.style.transition = `opacity 300ms ease ${i * 40}ms, transform 300ms ease ${i * 40}ms`;
+            requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateX(0)';
+            });
+        });
+    }, [mobileOpen]);
 
     return (
         <Box sx={{ display: 'flex' }}>
@@ -179,7 +207,9 @@ const Layout = () => {
                     mt: '64px',
                 }}
             >
-                <Outlet /> {/* Render child components */}
+                <div key={location.pathname} className="route-view">
+                    <Outlet /> {/* Render child components */}
+                </div>
             </Box>
         </Box>
     );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import {
@@ -36,8 +36,21 @@ import {
 import { format, isAfter } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+// Using CSS transitions to avoid anime.js default export issues in build
 
 const Dashboard = () => {
+    useEffect(() => {
+        const cards = Array.from(document.querySelectorAll('.stat-card'));
+        cards.forEach((el, i) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(8px)';
+            el.style.transition = `opacity 400ms ease ${i * 80}ms, transform 400ms ease ${i * 80}ms`;
+            requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            });
+        });
+    }, []);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [anchorEl, setAnchorEl] = React.useState(null);
@@ -244,7 +257,7 @@ const Dashboard = () => {
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} className="stat-card">
                     <StatCard
                         title="Total Appointments"
                         value={stats.total}
@@ -252,7 +265,7 @@ const Dashboard = () => {
                         color="primary"
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} className="stat-card">
                     <StatCard
                         title="Upcoming"
                         value={stats.upcoming}
@@ -260,7 +273,7 @@ const Dashboard = () => {
                         color="info"
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} className="stat-card">
                     <StatCard
                         title="Completed"
                         value={stats.completed}
@@ -268,7 +281,7 @@ const Dashboard = () => {
                         color="success"
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} className="stat-card">
                     <StatCard
                         title="Pending"
                         value={stats.pending}
