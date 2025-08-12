@@ -133,7 +133,10 @@ const startServer = async () => {
         app.use('/api/appointments', require('./routes/appointments'));
         app.use('/api/users', require('./routes/users'));
         app.use('/api/ai', require('./routes/ai'));
+        app.use('/api/notifications', require('./routes/notifications'));
         app.use('/api/collaboration', require('./routes/collaboration'));
+        app.use('/api/search', require('./routes/search'));
+        app.use('/api/stats', require('./routes/stats'));
 
         // Create HTTP server and attach Socket.IO and y-websocket providers
         const server = http.createServer(app);

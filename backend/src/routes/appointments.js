@@ -3,6 +3,7 @@ const router = express.Router();
 const { auth } = require('../middleware/auth');
 const Appointment = require('../models/Appointment');
 const { body, validationResult } = require('express-validator');
+const Notification = require('../models/Notification');
 
 // Validation middleware
 const validateAppointment = [
@@ -34,6 +35,18 @@ router.post('/', auth, validateAppointment, async (req, res) => {
         });
 
         await appointment.save();
+
+        // Create notifications for attendees
+        if (appointment.attendees && appointment.attendees.length > 0) {
+            const notifications = appointment.attendees.map(a => ({
+                user: a.user,
+                type: 'appointment',
+                title: 'You were invited to a meeting',
+                message: `"${appointment.title}" on ${new Date(appointment.startTime).toLocaleString()}`,
+                data: { appointmentId: appointment._id, startTime: appointment.startTime, endTime: appointment.endTime }
+            }));
+            try { await Notification.insertMany(notifications); } catch (_) { /* noop */ }
+        }
 
         // Populate creator and attendees information
         await appointment.populate('creator', 'username email');
@@ -125,6 +138,19 @@ router.patch('/:id/status', auth, [
         appointment.status = req.body.status;
         await appointment.save();
 
+        // Notify attendees about status change
+        try {
+            const targetUsers = [appointment.creator, ...appointment.attendees.map(a => a.user)].filter(u => String(u) !== String(req.user._id));
+            const notifications = targetUsers.map(u => ({
+                user: u,
+                type: 'appointment',
+                title: 'Appointment status updated',
+                message: `"${appointment.title}" is now ${appointment.status}.`,
+                data: { appointmentId: appointment._id, status: appointment.status }
+            }));
+            if (notifications.length) await Notification.insertMany(notifications);
+        } catch(_) { /* noop */ }
+
         // Populate creator and attendees information
         await appointment.populate('creator', 'username email');
         await appointment.populate('attendees.user', 'username email');
@@ -157,6 +183,18 @@ router.put('/:id', auth, validateAppointment, async (req, res) => {
             .populate('creator', 'username email')
             .populate('attendees.user', 'username email');
 
+        // Notify updated attendees (added or time changed)
+        try {
+            const notifications = updatedAppointment.attendees.map(a => ({
+                user: a.user,
+                type: 'appointment',
+                title: 'Appointment updated',
+                message: `"${updatedAppointment.title}" details were updated.`,
+                data: { appointmentId: updatedAppointment._id }
+            }));
+            if (notifications.length) await Notification.insertMany(notifications);
+        } catch(_) { /* noop */ }
+
         res.json(updatedAppointment);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -177,6 +215,22 @@ router.delete('/:id', auth, async (req, res) => {
         }
 
         await appointment.deleteOne();
+
+        // Notify attendees and creator
+        try {
+            const targets = [appointment.creator, ...appointment.attendees.map(a => a.user)];
+            const notifications = targets
+                .filter(u => String(u) !== String(req.user._id))
+                .map(u => ({
+                    user: u,
+                    type: 'appointment',
+                    title: 'Appointment cancelled',
+                    message: `"${appointment.title}" was cancelled.`,
+                    data: { appointmentId: appointment._id }
+                }));
+            if (notifications.length) await Notification.insertMany(notifications);
+        } catch (_) { /* noop */ }
+
         res.json({ message: 'Appointment deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -209,6 +263,19 @@ router.patch('/:id/response', auth, async (req, res) => {
 
         await appointment.populate('creator', 'username email');
         await appointment.populate('attendees.user', 'username email');
+
+        // Notify creator about attendee response
+        try {
+            if (!appointment.creator.equals(req.user._id)) {
+                await Notification.create({
+                    user: appointment.creator,
+                    type: 'appointment',
+                    title: 'Invitation response',
+                    message: `An attendee ${status} the invitation for "${appointment.title}".`,
+                    data: { appointmentId: appointment._id, attendeeId: req.user._id, status }
+                });
+            }
+        } catch (_) { /* noop */ }
 
         res.json(appointment);
     } catch (error) {

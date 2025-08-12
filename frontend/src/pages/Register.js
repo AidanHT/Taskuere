@@ -11,6 +11,8 @@ import {
     Link,
     Paper,
     Avatar,
+    alpha,
+    useTheme,
 } from '@mui/material';
 import { PersonAddOutlined } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +36,7 @@ const validationSchema = Yup.object({
 const Register = () => {
     const navigate = useNavigate();
     const { register } = useAuth();
+    const theme = useTheme();
 
     const formik = useFormik({
         initialValues: {
@@ -65,110 +68,129 @@ const Register = () => {
     });
 
     return (
-        <Container component="main" maxWidth="xs">
-            <Box
-                sx={{
-                    marginTop: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                }}
-            >
+        <Box sx={{
+            background: theme.customGradients.primary,
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 6,
+        }}>
+            <Container component="main" maxWidth="sm">
                 <Paper
-                    elevation={3}
+                    elevation={8}
                     sx={{
-                        padding: 4,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        width: '100%',
+                        p: { xs: 3, md: 5 },
+                        borderRadius: 4,
+                        background: theme.customGradients.cardGlass,
+                        backdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(255,255,255,0.2)'
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                        <PersonAddOutlined />
-                    </Avatar>
-                    <Typography component="h1" variant="h5">
-                        Sign up
-                    </Typography>
-                    <Box
-                        component="form"
-                        onSubmit={formik.handleSubmit}
-                        sx={{ mt: 1, width: '100%' }}
-                    >
-                        <TextField
-                            margin="normal"
-                            fullWidth
-                            id="username"
-                            label="Username"
-                            name="username"
-                            autoComplete="username"
-                            autoFocus
-                            value={formik.values.username}
-                            onChange={formik.handleChange}
-                            error={formik.touched.username && Boolean(formik.errors.username)}
-                            helperText={formik.touched.username && formik.errors.username}
-                        />
-                        <TextField
-                            margin="normal"
-                            fullWidth
-                            id="email"
-                            label="Email Address"
-                            name="email"
-                            autoComplete="email"
-                            value={formik.values.email}
-                            onChange={formik.handleChange}
-                            error={formik.touched.email && Boolean(formik.errors.email)}
-                            helperText={formik.touched.email && formik.errors.email}
-                        />
-                        <TextField
-                            margin="normal"
-                            fullWidth
-                            name="password"
-                            label="Password"
-                            type="password"
-                            id="password"
-                            autoComplete="new-password"
-                            value={formik.values.password}
-                            onChange={formik.handleChange}
-                            error={formik.touched.password && Boolean(formik.errors.password)}
-                            helperText={formik.touched.password && formik.errors.password}
-                        />
-                        <TextField
-                            margin="normal"
-                            fullWidth
-                            name="confirmPassword"
-                            label="Confirm Password"
-                            type="password"
-                            id="confirmPassword"
-                            autoComplete="new-password"
-                            value={formik.values.confirmPassword}
-                            onChange={formik.handleChange}
-                            error={
-                                formik.touched.confirmPassword &&
-                                Boolean(formik.errors.confirmPassword)
-                            }
-                            helperText={
-                                formik.touched.confirmPassword && formik.errors.confirmPassword
-                            }
-                        />
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
-                            disabled={formik.isSubmitting}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Avatar
+                            sx={{
+                                m: 1,
+                                width: 64,
+                                height: 64,
+                                background: theme.customGradients.secondary,
+                            }}
                         >
-                            Sign Up
-                        </Button>
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Link component={RouterLink} to="/login" variant="body2">
-                                {'Already have an account? Sign In'}
-                            </Link>
+                            <PersonAddOutlined />
+                        </Avatar>
+                        <Typography
+                            component="h1"
+                            variant="h4"
+                            sx={{
+                                mb: 2,
+                                fontWeight: 800,
+                                background: theme.customGradients.primary,
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                color: 'transparent',
+                                textAlign: 'center'
+                            }}
+                        >
+                            Create your account
+                        </Typography>
+                        <Typography color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+                            Join Taskuere to experience AI-powered scheduling and collaboration.
+                        </Typography>
+                        <Box component="form" onSubmit={formik.handleSubmit} sx={{ width: '100%' }}>
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                id="username"
+                                label="Username"
+                                name="username"
+                                autoComplete="username"
+                                autoFocus
+                                value={formik.values.username}
+                                onChange={formik.handleChange}
+                                error={formik.touched.username && Boolean(formik.errors.username)}
+                                helperText={formik.touched.username && formik.errors.username}
+                                sx={{ '& .MuiOutlinedInput-root': { backgroundColor: alpha('#fff', 0.9) } }}
+                            />
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                id="email"
+                                label="Email Address"
+                                name="email"
+                                autoComplete="email"
+                                value={formik.values.email}
+                                onChange={formik.handleChange}
+                                error={formik.touched.email && Boolean(formik.errors.email)}
+                                helperText={formik.touched.email && formik.errors.email}
+                                sx={{ '& .MuiOutlinedInput-root': { backgroundColor: alpha('#fff', 0.9) } }}
+                            />
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                name="password"
+                                label="Password"
+                                type="password"
+                                id="password"
+                                autoComplete="new-password"
+                                value={formik.values.password}
+                                onChange={formik.handleChange}
+                                error={formik.touched.password && Boolean(formik.errors.password)}
+                                helperText={formik.touched.password && formik.errors.password}
+                                sx={{ '& .MuiOutlinedInput-root': { backgroundColor: alpha('#fff', 0.9) } }}
+                            />
+                            <TextField
+                                margin="normal"
+                                fullWidth
+                                name="confirmPassword"
+                                label="Confirm Password"
+                                type="password"
+                                id="confirmPassword"
+                                autoComplete="new-password"
+                                value={formik.values.confirmPassword}
+                                onChange={formik.handleChange}
+                                error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
+                                helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
+                                sx={{ '& .MuiOutlinedInput-root': { backgroundColor: alpha('#fff', 0.9) } }}
+                            />
+                            <Button
+                                type="submit"
+                                fullWidth
+                                variant="contained"
+                                sx={{ mt: 3, mb: 2, py: 1.5, background: theme.customGradients.primary }}
+                                disabled={formik.isSubmitting}
+                            >
+                                Sign Up
+                            </Button>
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Link component={RouterLink} to="/login" variant="body1" sx={{ fontWeight: 600 }}>
+                                    Already have an account? Sign In
+                                </Link>
+                            </Box>
                         </Box>
                     </Box>
                 </Paper>
-            </Box>
-        </Container>
+            </Container>
+        </Box>
     );
 };
 

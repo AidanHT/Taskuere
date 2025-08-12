@@ -81,9 +81,11 @@ const Calendar = () => {
     // Update appointment mutation
     const updateAppointment = useMutation(
         async ({ id, values }) => {
+            const token = localStorage.getItem('token');
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/api/appointments/${id}`,
-                values
+                values,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
             return response.data;
         },
@@ -102,8 +104,10 @@ const Calendar = () => {
     // Delete appointment mutation
     const deleteAppointment = useMutation(
         async (id) => {
+            const token = localStorage.getItem('token');
             await axios.delete(
-                `${process.env.REACT_APP_API_URL}/api/appointments/${id}`
+                `${process.env.REACT_APP_API_URL}/api/appointments/${id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
         },
         {
