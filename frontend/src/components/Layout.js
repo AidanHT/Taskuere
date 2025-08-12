@@ -117,6 +117,15 @@ const Layout = () => {
             el.style.opacity = '1';
             el.style.transform = 'translateY(0)';
         });
+
+        // Optional enhancement with anime.js if available
+        try {
+            // eslint-disable-next-line global-require
+            const anime = require('animejs');
+            if (anime && anime.timeline) {
+                anime({ targets: '.route-view', opacity: [0, 1], translateY: [10, 0], duration: 450, easing: 'easeOutQuad' });
+            }
+        } catch (_) { /* ignore */ }
     }, [location.pathname]);
 
     useEffect(() => {
@@ -131,6 +140,13 @@ const Layout = () => {
                 el.style.transform = 'translateX(0)';
             });
         });
+        try {
+            // eslint-disable-next-line global-require
+            const anime = require('animejs');
+            if (anime && anime.timeline) {
+                anime({ targets: '.nav-item', opacity: [0, 1], translateX: [-12, 0], delay: anime.stagger(40), duration: 260, easing: 'easeOutSine' });
+            }
+        } catch (_) { /* ignore */ }
     }, [mobileOpen]);
 
     return (
@@ -156,7 +172,7 @@ const Layout = () => {
                         <MenuIcon />
                     </IconButton>
                     {/* Display page title dynamically based on route */}
-                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, letterSpacing: 0.5 }}>
                         {menuItems.find((item) => location.pathname.startsWith(item.path))?.text || 'Taskuere'}
                     </Typography>
                     {/* Show username in AppBar */}

@@ -207,7 +207,7 @@ const Dashboard = () => {
     );
 
     const StatCard = ({ title, value, icon, color }) => (
-        <Card sx={{ height: '100%' }}>
+        <Card sx={{ height: '100%', borderRadius: 3, background: 'linear-gradient(180deg, rgba(45,70,185,0.06), rgba(245,0,87,0.04))' }}>
             <CardContent>
                 <Box
                     sx={{
@@ -293,7 +293,7 @@ const Dashboard = () => {
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3 }}>
+                    <Paper elevation={4} sx={{ p: 3, borderRadius: 3 }}>
                         <Typography variant="h6" gutterBottom>Real-time Collaboration</Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                             Meet with your team in a shared space: video, whiteboard, and live document editing.
@@ -309,7 +309,7 @@ const Dashboard = () => {
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3 }}>
+                    <Paper elevation={4} sx={{ p: 3, borderRadius: 3 }}>
                         <Typography variant="h6" gutterBottom>Start an Instant Meeting</Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                             Create a meeting for now with a custom duration and jump right in.

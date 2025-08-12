@@ -220,7 +220,7 @@ const Calendar = () => {
 
     return (
         <Box sx={{ height: 'calc(100vh - 100px)' }}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+            <Paper elevation={6} sx={{ p: 3, height: '100%', borderRadius: 3 }}>
                 <FullCalendar
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                     headerToolbar={{

@@ -17,8 +17,8 @@ const theme = createTheme({
         background: {
             default: '#F8F9FE',
             paper: '#ffffff',
-            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            card: 'rgba(255, 255, 255, 0.9)',
+            gradient: 'linear-gradient(135deg, #2D46B9 0%, #F50057 100%)',
+            card: 'rgba(255, 255, 255, 0.92)',
         },
         text: {
             primary: '#2D3748',
@@ -61,9 +61,9 @@ const theme = createTheme({
                     },
                 },
                 contained: {
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #2D46B9 0%, #F50057 100%)',
                     '&:hover': {
-                        background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                        background: 'linear-gradient(135deg, #F50057 0%, #2D46B9 100%)',
                     },
                 },
             },
@@ -104,9 +104,9 @@ const theme = createTheme({
         },
     },
     customGradients: {
-        primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        primary: 'linear-gradient(135deg, #2D46B9 0%, #F50057 100%)',
         secondary: 'linear-gradient(135deg, #F50057 0%, #FF4081 100%)',
-        card: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+        card: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.85) 100%)',
     },
 });
 

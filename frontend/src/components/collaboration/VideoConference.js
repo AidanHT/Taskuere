@@ -12,7 +12,7 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const [peers, setPeers] = useState({}); // socketId -> peer
+  // peers state removed, using refs for stability
   const peersRef = useRef({});
   const [streams, setStreams] = useState({}); // socketId -> MediaStream
   const streamsRef = useRef({});
@@ -50,7 +50,6 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
         });
         peer.signal(signal);
         peersRef.current = { ...peersRef.current, [from]: peer };
-        setPeers(peersRef.current);
       }
     };
 
@@ -68,7 +67,6 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
         setStreams(streamsRef.current);
       });
       peersRef.current = { ...peersRef.current, [p.socketId]: peer };
-      setPeers(peersRef.current);
     });
 
     return () => {
@@ -76,7 +74,7 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
       Object.values(peersRef.current).forEach((peer) => peer.destroy());
       if (localStreamRef.current) localStreamRef.current.getTracks().forEach((t) => t.stop());
     };
-  }, [appointmentId, socket]);
+  }, [appointmentId, socket, participants]);
 
   // Manage initiating and pruning peers when participants or readiness changes
   useEffect(() => {
@@ -97,7 +95,6 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
         setStreams(streamsRef.current);
       });
       peersRef.current = { ...peersRef.current, [p.socketId]: peer };
-      setPeers(peersRef.current);
     });
 
     // Prune disconnected peers
@@ -106,7 +103,6 @@ const VideoConference = ({ appointmentId, socket, participants }) => {
         try { peersRef.current[socketId].destroy(); } catch (_) { /* noop */ }
         const { [socketId]: _, ...restPeers } = peersRef.current;
         peersRef.current = restPeers;
-        setPeers(peersRef.current);
         const { [socketId]: __, ...restStreams } = streamsRef.current;
         streamsRef.current = restStreams;
         setStreams(streamsRef.current);

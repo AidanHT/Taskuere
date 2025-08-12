@@ -139,6 +139,20 @@ const Login = () => {
         });
     }, []);
 
+    // Progressive enhancement if anime.js v3 is available
+    useEffect(() => {
+        try {
+            // eslint-disable-next-line global-require
+            const anime = require('animejs');
+            if (anime && anime.timeline) {
+                anime.timeline()
+                    .add({ targets: '.feature-card', opacity: [0, 1], translateY: [12, 0], delay: anime.stagger(80, { start: 200 }), easing: 'easeOutQuad', duration: 600 });
+            }
+        } catch (_) {
+            // not installed or SSR, ignore
+        }
+    }, []);
+
     const formik = useFormik({
         initialValues: {
             email: '',
@@ -198,7 +212,7 @@ const Login = () => {
                                 fontSize: { xs: '3rem', md: '5rem' },
                                 fontWeight: 800,
                                 mb: 2,
-                                background: 'linear-gradient(to right, #fff 20%, #FFD700 40%, #FF69B4 60%, #fff 80%)',
+                                background: 'linear-gradient(90deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 40%, rgba(245,0,87,0.9) 100%)',
                                 backgroundSize: '200% auto',
                                 color: 'transparent',
                                 WebkitBackgroundClip: 'text',
@@ -216,7 +230,7 @@ const Login = () => {
                             sx={{
                                 fontSize: { xs: '1.5rem', md: '2.5rem' },
                                 mb: 4,
-                                color: alpha('#fff', 0.9),
+                                color: alpha('#fff', 0.95),
                                 fontWeight: 600,
                                 position: 'relative',
                                 zIndex: 1,
